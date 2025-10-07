@@ -39,27 +39,6 @@ services:
     depends_on:
       - auth
 
-  auth:
-    image: pi-knu-auth:latest
-    container_name: auth-prod
-    env_file:
-      - ../auth/.env
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5010/health" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    depends_on:
-      - postgres
-
-  migration:
-    image: pi-knu-dev-migration:latest
-    depends_on:
-      - postgres
-    networks:
-      - app-network
-
 networks:
   app-network:
     driver: bridge

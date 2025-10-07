@@ -39,25 +39,6 @@ services:
     depends_on:
       - auth
 
-  auth:
-    image: mcr.microsoft.com/dotnet/sdk:8.0
-    container_name: auth-service
-    working_dir: /auth
-    volumes:
-      - ../auth/auth/:/auth
-    command: [ "dotnet", "run", "--urls", "http://0.0.0.0:5010" ]
-    env_file:
-      - ../auth/.env
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:5010/health" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-    depends_on:
-      - postgres
-
-
 networks:
   app-network:
     driver: bridge
