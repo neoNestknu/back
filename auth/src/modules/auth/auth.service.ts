@@ -1,177 +1,80 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import {
-  NOTIFICATION_SERVICE_CLIENT,
-  TYPE_MAIL,
-} from '../../constants/constants';
-import { HashingService } from './hashing/hashing.service';
-import { firstValueFrom } from 'rxjs';
-import { JwtAuthService } from './jwt-auth/jwt-auth.service';
-import { UserJwtDataDto } from '../../dto/user-jwt-data.dto';
-import { JwtPayload } from '../../dto/jwt-payload.dto';
-import { AccessTokenDto } from '../../dto/access-token.dto';
-import { JwtTokensDto } from '../../dto/jwt-tokens.dto';
-import { SetNewPasswordDto } from './dto/set-new-password.dto';
+import {BadRequestException, HttpStatus, Inject, Injectable} from '@nestjs/common';
+import {SignUserDto} from "../../dto/sign-user.dto";
+import {HashingService} from "./hashing/hashing.service";
+import {JwtAuthService} from "./jwt/jwt.service";
+import { Response, Request } from 'express';
+import jwtConfig from "../../config/jwt.config";
+import {ConfigType} from "@nestjs/config";
+import {UserService} from "../user/user.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly jwtAuthService: JwtAuthService,
-    @Inject(NOTIFICATION_SERVICE_CLIENT)
-    private readonly hashingService: HashingService,
+      private readonly hashingService: HashingService,
+      private readonly jwtAuthService: JwtAuthService,
+      @Inject(jwtConfig.KEY) private readonly jwtConf: ConfigType<typeof jwtConfig>,
+      private readonly userService: UserService,
   ) {}
 
-  async signUp(data: CreateUserDto): Promise<void> {
+  async signUp(data: SignUserDto, res: Response) {
     await this.validateUserExist(data.email);
     data.password = await this.hashingService.setHash(data.password);
-    const dataValues = await this.userService.createUser(data);
+    const dataValues = await this.userService.create(data);
+    const tokens = this.jwtAuthService.generateTokens({sub: dataValues.id})
 
-    const link = await this.linkService.create({
-      userId: dataValues.id,
-      type: 'registration',
-    });
-    await this.sendMail(dataValues.email, TYPE_MAIL.ACTIVATE_ACCOUNT, link.id);
-    return;
+    res = this.setTokenInCookie(res, tokens.refreshToken);
+    return res.json({accessToken: tokens.accessToken});
   }
 
-  async requestLogin(data: CreateUserDto): Promise<void> {
-    await this.validateActivateUser(data.email);
-    const dataValues = await this.userService.findUser(data.email);
+  async signIn(data: SignUserDto, res: Response) {
+    const dataValues = await this.userService.findByEmail(data.email);
     await this.validatePassword(data.password, dataValues.password);
-
-    const link = await this.linkService.create({
-      userId: dataValues.id,
-      type: 'login',
-    });
-
-    await this.sendMail(dataValues.email, TYPE_MAIL.ACTIVATE_ACCOUNT, link.id);
-    return;
-  }
-
-  async signIn(data: LinkDto): Promise<JwtTokensDto> {
-    const dataValues = await this.linkService.findOne(data);
     const tokens = this.jwtAuthService.generateTokens({
-      sub: dataValues.userId,
+      sub: dataValues.id,
     });
 
-    await this.linkService.delete(dataValues);
-    return tokens;
+    res = this.setTokenInCookie(res, tokens.refreshToken);
+    return res.json({accessToken: tokens.accessToken});
   }
 
-  async refresh(data: UserJwtDataDto): Promise<AccessTokenDto> {
-    return this.jwtAuthService.getAccessToken(data);
-  }
-
-  async logout(token: string): Promise<void> {
-    try {
-      const data: JwtPayload = await this.jwtAuthService.verifyAsync(token);
-      const expires: number = data.exp * 1000 - Date.now();
-      if (expires > 0) {
-        await this.redisService.addRevokedToken(token, expires);
-      }
-    } catch (error) {
-      throw new RpcException({
-        status: HttpStatus.UNAUTHORIZED,
-        message: error.message,
-      });
-    }
-  }
-
-  async forgotPassword(email: string): Promise<void> {
-    const dataValues = await this.validateUser(email);
-    const link = await this.linkService.create({
-      userId: dataValues.id,
-      type: 'password_reset',
+  async refresh(token: string, res: Response) {
+    const data = await this.jwtAuthService.verify(token);
+    const userDataValues = await this.userService.findById(data.sub);
+    const tokens = this.jwtAuthService.generateTokens({
+      sub: userDataValues.id,
     });
-    await this.sendMail(dataValues.email, TYPE_MAIL.FORGOT_PASSWORD, link.id);
-    return;
+
+    res = this.setTokenInCookie(res, tokens.refreshToken);
+    return res.json({accessToken: tokens.accessToken});
   }
 
-  async setNewPassword(data: SetNewPasswordDto): Promise<void> {
-    const link = await this.linkService.findOne({ link: data.link });
-    const dataValues = await this.userService.findUserById(link.userId);
-    if (!dataValues) {
-      throw new RpcException({
-        status: HttpStatus.NOT_FOUND,
-        message: 'User not found',
-      });
+  async logout(token: string, res: Response) {
+    if (typeof token === 'undefined') {
+      return res.status(HttpStatus.OK).json({});
     }
-    dataValues.password = data.password;
-    await dataValues.save();
-    return;
+    res.clearCookie('refreshToken');
+    return res.status(HttpStatus.OK).json({});
   }
 
-  private async validateUserExist(email: string): Promise<void> {
-    const dataValues = await this.userService.findUser(email);
-    if (dataValues) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'Invalid credentials',
-      });
-    }
-  }
+  async forgotPassword(email: string): Promise<void> {}
 
-  private async validateUser(email: string): Promise<User> {
-    const dataValues = await this.userService.findUser(email);
-    if (!dataValues) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'Invalid credentials',
-      });
-    }
-    return dataValues;
-  }
+  private async validateUserExist(email: string): Promise<void> {}
 
-  private async validateActivateUser(email: string): Promise<void> {
-    const dataValues = await this.userService.findUser(email);
-    if (!dataValues.isActivated || !dataValues) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'User account is not activated',
-      });
-    }
+  private setTokenInCookie(res: Response, refreshToken: string) {
+    return res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: this.jwtConf.refresh_ttl,
+    });
   }
 
   private async validatePassword(
-    password: string,
-    hashedPassword: string,
+      password: string,
+      hashedPassword: string,
   ): Promise<void> {
     if (!(await this.hashingService.compareHash(password, hashedPassword))) {
-      throw new RpcException({
-        status: HttpStatus.BAD_REQUEST,
-        message: 'Invalid credentials',
-      });
-    }
-  }
-
-  private async sendMail(
-    email: string,
-    type: TYPE_MAIL,
-    link: string,
-  ): Promise<any> {
-    try {
-      return await firstValueFrom(
-        this.notificationClient.send('send_mail', {
-          email: email,
-          type: type,
-          link: link,
-        }),
-      );
-    } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'status' in error &&
-        'message' in error
-      ) {
-        throw new RpcException({
-          status: error.status,
-          message: error.message,
-        });
-      }
-      throw new RpcException({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        message: 'Unknown error occurred',
-      });
+      throw new BadRequestException('Invalid credentials');
     }
   }
 }

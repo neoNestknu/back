@@ -8,9 +8,10 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { KEYS } from '../../constants/constants';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { JwtAuthService } from './jwt-auth/jwt-auth.service';
 import jwtConfig from '../../config/jwt.config';
 import appConfig from '../../config/app.config';
+import {JwtAuthService} from "./jwt/jwt.service";
+import {UserModule} from "../user/user.module";
 
 @Module({
   controllers: [AuthController],
@@ -53,6 +54,7 @@ import appConfig from '../../config/app.config';
         };
       },
     }),
+      UserModule
   ],
 })
 export class AuthModule {}
