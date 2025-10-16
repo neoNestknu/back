@@ -7,6 +7,8 @@ startMsg
 
 copyEnvs
 
+docker build -t pi-knu-auth:latest ../auth
+
 docker compose -f docker-compose.prod.yml up -d
 
 endMsg

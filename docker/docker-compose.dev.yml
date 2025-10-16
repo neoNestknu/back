@@ -1,4 +1,4 @@
-name: pi-knu-dev
+name: neo-nest-dev
 
 services:
   postgres:
@@ -38,6 +38,42 @@ services:
       retries: 3
     depends_on:
       - auth
+
+  auth:
+    image: node:20
+    container_name: auth-dev
+    env_file: ../auth/.env
+    working_dir: /app
+    volumes:
+      - ../auth/:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run start:dev"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/notification/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  docs:
+    image: node:20
+    container_name: docs-dev
+    env_file: ../docs/.env
+    working_dir: /app
+    volumes:
+      - ../docs/:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/docs/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 networks:
   app-network:
