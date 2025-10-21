@@ -1,10 +1,8 @@
 import os
 from fastapi import FastAPI, Depends, Request
-from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-
-from user.src.config.db import get_db, engine
-from user.src.routes.health import router as health_router
+import uvicorn
+from user.src.routes.health import health_router
 from user.src.auth.auth_guard import auth_guard
 
 # Load environment variables
@@ -53,8 +51,6 @@ async def get_user_data(
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

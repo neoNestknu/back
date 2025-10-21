@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from user.src.config.db import get_db, engine
+from user.src.config.db import get_db
 
-router = APIRouter()
+health_router = APIRouter()
 
-@router.get("/user/health")
+@health_router.get("/user/health")
 async def health_check(db: Session = Depends(get_db)):
     """
     Health check endpoint

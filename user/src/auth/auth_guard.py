@@ -1,9 +1,11 @@
 import os
 import jwt
 import httpx
+from dotenv import load_dotenv
 from fastapi import Request, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
+load_dotenv()
 
 security = HTTPBearer()
 
