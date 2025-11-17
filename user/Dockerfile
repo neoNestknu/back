@@ -17,12 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create a non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
-USER appuser
 
 # Expose port
-EXPOSE 3002
+EXPOSE 80
 
 # Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3002"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]

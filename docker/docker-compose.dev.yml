@@ -57,6 +57,26 @@ services:
       timeout: 5s
       retries: 3
 
+  user:
+    build:
+      context: ../user
+      dockerfile: Dockerfile
+    container_name: user-service
+    env_file: ../user/.env
+    expose:
+      - "80"
+    volumes:
+      - ../user:/app
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/user/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+
   docs:
     image: node:20
     container_name: docs-dev
@@ -74,6 +94,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
 
 networks:
   app-network:

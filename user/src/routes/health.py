@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from user.src.config.db import get_db
+from src.config.db import get_db
 
 health_router = APIRouter()
 

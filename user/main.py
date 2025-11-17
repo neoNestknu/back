@@ -2,8 +2,8 @@ import os
 from fastapi import FastAPI, Depends, Request
 from dotenv import load_dotenv
 import uvicorn
-from user.src.routes.health import health_router
-from user.src.auth.auth_guard import auth_guard
+from src.routes.health import health_router
+from src.auth.auth_guard import auth_guard
 
 # Load environment variables
 load_dotenv()
@@ -54,6 +54,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=os.getenv("PORT", 3002),
+        port=os.getenv("PORT", 80),
         reload=True
     )
