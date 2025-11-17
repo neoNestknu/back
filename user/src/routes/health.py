@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-from src.config.db import get_db
+from ..config.db import get_db
 
 health_router = APIRouter()
 
@@ -12,7 +13,7 @@ async def health_check(db: Session = Depends(get_db)):
     """
     try:
         # Check database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
 
         return {
             "status": "healthy",
