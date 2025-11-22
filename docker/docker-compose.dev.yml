@@ -67,6 +67,7 @@ services:
       - "80"
     volumes:
       - ../user:/app
+      - ../migration_module:/app/migration_module
     networks:
       - app-network
     restart: unless-stopped
@@ -76,6 +77,27 @@ services:
       timeout: 5s
       retries: 3
 
+  auction:
+    build:
+      context: ../auction
+      dockerfile: Dockerfile
+    container_name: auction-service
+    env_file: ../auction/.env
+    expose:
+      - "80"
+    volumes:
+      - ../auction:/app
+      - ../migration_module:/app/migration_module
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/auction/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   docs:
     image: node:20
