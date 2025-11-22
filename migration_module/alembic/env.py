@@ -9,7 +9,7 @@ load_dotenv()  # looks for .env in the current or parent dirs
 
 POSTGRES_USER = os.getenv("POSTGRES_USER")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 POSTGRES_DB = os.getenv("POSTGRES_DB")
 
@@ -36,7 +36,13 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+try:
+    from models import Base
+    target_metadata = Base.metadata
+except ImportError as e:
+    print(f"⚠️  Warning: Could not import models: {e}")
+    print("   Autogenerate will not work properly!")
+    target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

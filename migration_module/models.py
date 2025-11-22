@@ -1,9 +1,16 @@
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.dialects.postgresql import UUID
 import sqlalchemy as sa
+import enum
 
 Base = declarative_base()
 metadata = Base.metadata
+
+
+class UserRole(enum.Enum):
+    admin = "admin"
+    client = "client"
+    realtor = "realtor"
 
 class User(Base):
     __tablename__ = "users"
@@ -14,6 +21,12 @@ class User(Base):
 
     data = relationship("UserData", back_populates="user", uselist=False,
                         cascade="all, delete-orphan")
+
+    role = sa.Column(
+        sa.Enum(UserRole, name="user_role_enum"),
+        nullable=False,
+        server_default="client"
+    )
 
 class UserData(Base):
     __tablename__ = "user_data"

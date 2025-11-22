@@ -95,6 +95,28 @@ services:
       timeout: 5s
       retries: 3
 
+  migration:
+    build:
+      context: ../migration_module
+      dockerfile: Dockerfile
+    container_name: migration-dev
+    env_file:
+      - ../postgres/.env
+    working_dir: /app
+    volumes:
+      - ../migration_module:/app:rw
+      - ../user:/usr/src/user:ro
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h postgres -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 networks:
   app-network:
