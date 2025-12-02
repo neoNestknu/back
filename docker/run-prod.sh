@@ -7,7 +7,10 @@ startMsg
 
 copyEnvs
 
-docker build -t pi-knu-auth:latest ../auth
+docker build -t nnk:latest ../auth/auth
+docker build -t nnk:latest ../migration_module
+docker build -t nnk:latest ../notification
+docker build -t nnk:latest ../migration_module
 
 docker compose -f docker-compose.prod.yml up -d
 

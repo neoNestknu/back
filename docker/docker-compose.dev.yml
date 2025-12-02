@@ -1,4 +1,4 @@
-name: neo-nest-dev
+name: nnk-dev
 
 services:
   postgres:
@@ -117,28 +117,64 @@ services:
       timeout: 5s
       retries: 3
 
-  migration:
-    build:
-      context: ../migration_module
-      dockerfile: Dockerfile
-    container_name: migration-dev
-    env_file:
-      - ../postgres/.env
+  migrations:
+    image: python:3.11-slim
+    container_name: migrations-service
     working_dir: /app
     volumes:
-      - ../migration_module:/app:rw
-      - ../user:/usr/src/user:ro
+      - ../migration_module/:/app
+    command: >
+      bash -c "
+        chmod +x alembic_cli.py &&
+        pip install --no-cache-dir -r requirements.txt &&
+        echo 'Container ready, run: python alembic_cli.py' &&
+        tail -f /dev/null
+      "
     networks:
       - app-network
-    depends_on:
-      postgres:
-        condition: service_healthy
+    restart: "no"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h postgres -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1" ]
-      interval: 10s
+      test: [ "CMD-SHELL", "echo 'ok'" ]
+      interval: 30s
       timeout: 5s
-      retries: 5
+      retries: 3
 
+  notification:
+    image: node:20
+    container_name: notification-dev
+    env_file: ../notification/.env
+    working_dir: /app
+    volumes:
+      - ../notification/:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run start:dev"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/notification/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio-dev
+    ports:
+      - "9001:9001"
+    env_file:
+      - ../minio-local/.env
+    volumes:
+      - ../minio-local/minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
 networks:
   app-network:
