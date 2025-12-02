@@ -1,4 +1,4 @@
-name: neo-nest-prod
+name: nnk-prod
 
 services:
   postgres:
@@ -40,13 +40,63 @@ services:
       - auth
 
   auth:
-    image: pi-knu-auth:latest
+    image: nnk-auth:latest
     env_file:
       - ../auth/.env
     networks:
       - app-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  notification:
+    image: nnk-notification:latest
+    env_file:
+      - ../notification/.env
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  migration:
+    image: nnk-migration:latest
+    env_file:
+      - ../migration_module/.env
+    command: >
+      sh -c "
+        pip install --no-cache-dir -r requirements.txt &&
+        alembic upgrade head
+      "
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  user:
+    image: nnk-user:latest
+    env_file:
+      - ../notification/.env
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/user/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  auction:
+    image: nnk-auction:latest
+    env_file:
+      - ../notification/.env
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost/auction/health" ]
       interval: 30s
       timeout: 5s
       retries: 3
