@@ -81,6 +81,8 @@ cp ../migration_module/example.env ../migration_module/.env
 docker build -t nnk-auth:latest ../auth
 docker build -t nnk-migration:latest ../migration_module
 docker build -t nnk-notification:latest ../notification
+docker build -t nnk-user:latest ../user
+docker build -t nnk-auction:latest ../auction
 ```
 
 #### 3. Deploy containers:
