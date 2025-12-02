@@ -63,11 +63,8 @@ services:
       dockerfile: Dockerfile
     container_name: user-service
     env_file: ../user/.env
-    expose:
-      - "80"
     volumes:
       - ../user:/app
-      - ../migration_module:/app/migration_module
     networks:
       - app-network
     restart: unless-stopped
@@ -83,11 +80,8 @@ services:
       dockerfile: Dockerfile
     container_name: auction-service
     env_file: ../auction/.env
-    expose:
-      - "80"
     volumes:
       - ../auction:/app
-      - ../migration_module:/app/migration_module
     networks:
       - app-network
     depends_on:
